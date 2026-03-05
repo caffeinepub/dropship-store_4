@@ -45,7 +45,9 @@ export enum UserRole {
     guest = "guest"
 }
 export interface backendInterface {
+    addProduct(name: string, description: string, price: number, imageUrl: string, category: string): Promise<bigint>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    deleteProduct(id: bigint): Promise<void>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getEnquiries(): Promise<Array<Enquiry>>;
@@ -59,4 +61,5 @@ export interface backendInterface {
     submitEnquiry(name: string, email: string, subject: string, message: string): Promise<void>;
     submitOrder(customerName: string, email: string, phone: string, shippingAddress: string, items: string, totalAmount: number): Promise<bigint>;
     updateOrderStatus(orderId: bigint, status: string): Promise<void>;
+    updateProduct(id: bigint, name: string, description: string, price: number, imageUrl: string, category: string, inStock: boolean): Promise<void>;
 }

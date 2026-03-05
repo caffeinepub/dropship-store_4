@@ -6,8 +6,10 @@ import Float "mo:core/Float";
 import Array "mo:core/Array";
 import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
+
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
+
 
 actor {
   let accessControlState = AccessControl.initState();
@@ -80,13 +82,13 @@ actor {
   var nextOrderId = 1;
   var nextEnquiryId = 1;
 
-  // Seed initial products (array)
+  // Seed updated initial products with INR prices
   let initialProducts : [Product] = [
     {
       id = 1;
       name = "Wireless Earbuds";
       description = "High-quality wireless earbuds with noise cancellation.";
-      price = 79.99;
+      price = 399.0;
       imageUrl = "https://example.com/images/earbuds.jpg";
       category = "Electronics";
       inStock = true;
@@ -95,7 +97,7 @@ actor {
       id = 2;
       name = "Smart Watch";
       description = "Feature-rich smart watch with fitness tracking.";
-      price = 129.99;
+      price = 699.0;
       imageUrl = "https://example.com/images/smartwatch.jpg";
       category = "Electronics";
       inStock = true;
@@ -104,7 +106,7 @@ actor {
       id = 3;
       name = "Yoga Mat";
       description = "Eco-friendly yoga mat with non-slip surface.";
-      price = 35.0;
+      price = 150.0;
       imageUrl = "https://example.com/images/yogamat.jpg";
       category = "Fitness";
       inStock = true;
@@ -113,7 +115,7 @@ actor {
       id = 4;
       name = "Water Bottle";
       description = "Insulated stainless steel water bottle.";
-      price = 19.99;
+      price = 99.0;
       imageUrl = "https://example.com/images/waterbottle.jpg";
       category = "Fitness";
       inStock = true;
@@ -122,7 +124,7 @@ actor {
       id = 5;
       name = "Bluetooth Speaker";
       description = "Portable Bluetooth speaker with powerful bass.";
-      price = 49.99;
+      price = 299.0;
       imageUrl = "https://example.com/images/speaker.jpg";
       category = "Electronics";
       inStock = true;
@@ -131,14 +133,14 @@ actor {
       id = 6;
       name = "Fitness Tracker";
       description = "Wearable fitness tracker with heart rate monitor.";
-      price = 59.99;
+      price = 499.0;
       imageUrl = "https://example.com/images/fitnesstracker.jpg";
       category = "Fitness";
       inStock = true;
     },
   ];
 
-  // Seed initial products into products map
+  // Seed initial products into products map (empty at runtime for upgrade)
   for (product in initialProducts.values()) {
     products.add(product.id, product);
   };
@@ -150,6 +152,20 @@ actor {
 
   public query ({ caller }) func getProduct(id : Nat) : async ?Product {
     products.get(id);
+  };
+
+  public query ({ caller }) func getOrders() : async [Order] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can view orders");
+    };
+    orders.values().toArray();
+  };
+
+  public query ({ caller }) func getEnquiries() : async [Enquiry] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can view enquiries");
+    };
+    enquiries.values().toArray();
   };
 
   public shared ({ caller }) func submitOrder(
@@ -196,13 +212,6 @@ actor {
   };
 
   // Admin-only endpoints
-  public query ({ caller }) func getOrders() : async [Order] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can perform this action");
-    };
-    orders.values().toArray();
-  };
-
   public shared ({ caller }) func updateOrderStatus(orderId : Nat, status : Text) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
       Runtime.trap("Unauthorized: Only admins can perform this action");
@@ -228,13 +237,6 @@ actor {
     };
   };
 
-  public query ({ caller }) func getEnquiries() : async [Enquiry] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can perform this action");
-    };
-    enquiries.values().toArray();
-  };
-
   public shared ({ caller }) func markEnquiryRead(enquiryId : Nat) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
       Runtime.trap("Unauthorized: Only admins can perform this action");
@@ -254,6 +256,75 @@ actor {
           isRead = true;
         };
         enquiries.add(enquiryId, updatedEnquiry);
+      };
+    };
+  };
+
+  public shared ({ caller }) func addProduct(
+    name : Text,
+    description : Text,
+    price : Float,
+    imageUrl : Text,
+    category : Text,
+  ) : async Nat {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
+    let product : Product = {
+      id = nextProductId;
+      name;
+      description;
+      price;
+      imageUrl;
+      category;
+      inStock = true;
+    };
+    products.add(nextProductId, product);
+    nextProductId += 1;
+    product.id;
+  };
+
+  public shared ({ caller }) func updateProduct(
+    id : Nat,
+    name : Text,
+    description : Text,
+    price : Float,
+    imageUrl : Text,
+    category : Text,
+    inStock : Bool,
+  ) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
+    switch (products.get(id)) {
+      case (null) {
+        Runtime.trap("Product not found");
+      };
+      case (?_product) {
+        let updatedProduct : Product = {
+          id;
+          name;
+          description;
+          price;
+          imageUrl;
+          category;
+          inStock;
+        };
+        products.add(id, updatedProduct);
+      };
+    };
+  };
+
+  public shared ({ caller }) func deleteProduct(id : Nat) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
+    switch (products.get(id)) {
+      case (null) {
+        Runtime.trap("Product not found");
+      };
+      case (?_product) {
+        products.remove(id);
       };
     };
   };

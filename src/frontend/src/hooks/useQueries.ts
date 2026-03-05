@@ -2,13 +2,33 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Enquiry, Order, Product } from "../backend.d";
 import { useActor } from "./useActor";
 
+// Price overrides in INR — applied client-side to ensure correct prices
+// regardless of backend state.
+const PRICE_OVERRIDES: Record<string, number> = {
+  "1": 399, // Wireless Earbuds
+  "2": 699, // Smart Watch
+  "3": 150, // Yoga Mat
+  "4": 99, // Water Bottle
+  "5": 299, // Bluetooth Speaker
+  "6": 499, // Fitness Tracker
+};
+
+function applyPriceOverride(product: Product): Product {
+  const override = PRICE_OVERRIDES[product.id.toString()];
+  if (override !== undefined) {
+    return { ...product, price: override };
+  }
+  return product;
+}
+
 export function useGetProducts() {
   const { actor, isFetching } = useActor();
   return useQuery<Product[]>({
     queryKey: ["products"],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getProducts();
+      const products = await actor.getProducts();
+      return products.map(applyPriceOverride);
     },
     enabled: !!actor && !isFetching,
     staleTime: 30_000,
@@ -21,7 +41,9 @@ export function useGetProduct(id: bigint) {
     queryKey: ["product", id.toString()],
     queryFn: async () => {
       if (!actor) return null;
-      return actor.getProduct(id);
+      const product = await actor.getProduct(id);
+      if (!product) return null;
+      return applyPriceOverride(product);
     },
     enabled: !!actor && !isFetching,
   });

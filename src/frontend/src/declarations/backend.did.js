@@ -46,7 +46,13 @@ export const Product = IDL.Record({
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+  'addProduct' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Float64, IDL.Text, IDL.Text],
+      [IDL.Nat],
+      [],
+    ),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'deleteProduct' : IDL.Func([IDL.Nat], [], []),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getEnquiries' : IDL.Func([], [IDL.Vec(Enquiry)], ['query']),
@@ -68,6 +74,11 @@ export const idlService = IDL.Service({
       [],
     ),
   'updateOrderStatus' : IDL.Func([IDL.Nat, IDL.Text], [], []),
+  'updateProduct' : IDL.Func(
+      [IDL.Nat, IDL.Text, IDL.Text, IDL.Float64, IDL.Text, IDL.Text, IDL.Bool],
+      [],
+      [],
+    ),
 });
 
 export const idlInitArgs = [];
@@ -111,7 +122,13 @@ export const idlFactory = ({ IDL }) => {
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+    'addProduct' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Float64, IDL.Text, IDL.Text],
+        [IDL.Nat],
+        [],
+      ),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'deleteProduct' : IDL.Func([IDL.Nat], [], []),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getEnquiries' : IDL.Func([], [IDL.Vec(Enquiry)], ['query']),
@@ -137,6 +154,19 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'updateOrderStatus' : IDL.Func([IDL.Nat, IDL.Text], [], []),
+    'updateProduct' : IDL.Func(
+        [
+          IDL.Nat,
+          IDL.Text,
+          IDL.Text,
+          IDL.Float64,
+          IDL.Text,
+          IDL.Text,
+          IDL.Bool,
+        ],
+        [],
+        [],
+      ),
   });
 };
 
